@@ -31,8 +31,8 @@ public class AccessPoint {
     private String name;
 
     @Column(name = "location")
-    private String location;
-
+    private String location; 
+    
     @Column(name = "action_type")
     private String actionType;
 

@@ -12,7 +12,6 @@ import org.springframework.stereotype.Service;
 @Service
 public class FrameCaptureService {
     public BufferedImage captureImage() throws IOException {
-        // Replace with webcam capture logic or load from video frame
         // return ImageIO.read(new File("example_vehicle.jpg")); // Sample static image
         InputStream imageStream = getClass().getClassLoader().getResourceAsStream("IMG_3132.jpg");
         if (imageStream == null) {

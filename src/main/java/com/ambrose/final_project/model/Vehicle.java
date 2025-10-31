@@ -78,7 +78,7 @@ public class Vehicle {
         this.type = type;
     }
 
-    public List<Log> getLog() {
+    public List<Log> getLogs() {
         return logs;
     }
 

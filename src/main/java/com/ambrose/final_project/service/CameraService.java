@@ -21,8 +21,8 @@ public class CameraService {
     @PostConstruct
     public void init() {
         nu.pattern.OpenCV.loadShared(); // Load native OpenCV lib
-        capture = new VideoCapture(0); // 0 = default camera
-        frame = new Mat();
+       // capture = new VideoCapture(0); // 0 = default camera
+       // frame = new Mat();
     }
 
     public byte[] getFrameAsBytes() throws IOException {

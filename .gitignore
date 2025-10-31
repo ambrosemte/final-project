@@ -37,3 +37,6 @@ build/
 *.jpg
 *.jpeg
 *.onnx
+
+*.log
+*.properties
