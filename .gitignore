@@ -40,3 +40,9 @@ build/
 
 *.log
 *.properties
+
+### macOS ###
+.DS_Store
+
+### JVM crash dumps ###
+hs_err_pid*.log

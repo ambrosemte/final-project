@@ -7,11 +7,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import javax.imageio.ImageIO;
 
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -35,10 +35,10 @@ import org.springframework.http.MediaType;
 
 @RestController
 @RequestMapping("/api/vehicles")
-@CrossOrigin(origins = "http://127.0.0.1:5500")
 public class VehicleController {
     private VehicleService vehicleService;
     private CameraService cameraService;
+    private final AtomicInteger activeStreams = new AtomicInteger();
 
     public VehicleController(VehicleService vehicleService, CameraService cameraService) {
         this.vehicleService = vehicleService;
@@ -47,23 +47,45 @@ public class VehicleController {
 
     @GetMapping(value = "/entry-scan", produces = "multipart/x-mixed-replace; boundary=frame")
     public void entry(HttpServletResponse response) throws IOException {
+        streamAndProcess(response, "ENTRY");
+    }
+
+    @GetMapping(value = "/exit-scan", produces = "multipart/x-mixed-replace; boundary=frame")
+    public void exit(HttpServletResponse response) throws IOException {
+        streamAndProcess(response, "EXIT");
+    }
+
+    private void streamAndProcess(HttpServletResponse response, String actionType) throws IOException {
+        if (!cameraService.open()) {
+            response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE, "Camera not available");
+            return;
+        }
+        activeStreams.incrementAndGet();
         response.setContentType("multipart/x-mixed-replace; boundary=frame");
-        OutputStream out = response.getOutputStream();
-
-        while (true) {
-        BufferedImage img = cameraService.getFrameAsBufferedImage();
-        vehicleService.processVehicleFrame(img, "ENTRY");
-
-        out.write(("--frame\r\nContent-Type: image/jpeg\r\n\r\n").getBytes());
-        ImageIO.write(img, "JPEG", out);
-        out.write("\r\n".getBytes());
-        out.flush();
 
         try {
-        Thread.sleep(33); // adjust frame rate
-        } catch (InterruptedException e) {
-        break;
-        }
+            OutputStream out = response.getOutputStream();
+            while (true) {
+                BufferedImage img = cameraService.getFrameAsBufferedImage();
+                if (img == null) {
+                    Thread.sleep(100); // camera not ready yet, try again
+                    continue;
+                }
+                vehicleService.processVehicleFrame(img, actionType);
+
+                out.write(("--frame\r\nContent-Type: image/jpeg\r\n\r\n").getBytes());
+                ImageIO.write(img, "JPEG", out);
+                out.write("\r\n".getBytes());
+                out.flush();
+
+                Thread.sleep(33); // adjust frame rate
+            }
+        } catch (IOException | InterruptedException e) {
+            // Browser stopped the stream (Stop button, page closed)
+        } finally {
+            if (activeStreams.decrementAndGet() == 0) {
+                cameraService.release();
+            }
         }
     }
 
@@ -81,16 +103,6 @@ public class VehicleController {
         }
         return response;
     }
-
-    // @GetMapping(value = "/entry-scan")
-    // public void entryScan() {
-    //     vehicleService.processVehicleFrame( "ENTRY");
-    // }
-
-    // @GetMapping("/exit-scan")
-    // public void exitScan() {
-    // vehicleService.processVehicleFrame("EXIT");
-    // }
 
     @GetMapping("")
     public List<VehicleResponse> getVehicles() {

@@ -116,6 +116,10 @@
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
+				<configuration>
+					<!-- Where Homebrew installs the Tesseract native library -->
+					<jvmArguments>-Djna.library.path=/usr/local/lib</jvmArguments>
+				</configuration>
 			</plugin>
 		</plugins>
 	</build>

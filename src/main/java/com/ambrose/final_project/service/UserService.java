@@ -31,6 +31,10 @@ public class UserService {
         return null;
     }
 
+    public User save(User user) {
+        return userRepository.save(user);
+    }
+
     public void deleteById(UUID id) {
         userRepository.deleteById(id);
     }

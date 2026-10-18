@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .sidebar {
+            min-height: 100vh;
+            background-color: #343a40;
+            width: 250px;
+        }
+
+        .sidebar .nav-link {
+            color: rgba(255, 255, 255, 0.75);
+            padding: 12px 20px;
+            border-left: 4px solid transparent;
+        }
+
+        .sidebar .nav-link:hover,
+        .sidebar .nav-link.active {
+            color: white;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-left: 4px solid #0d6efd;
+        }
+
+        .sidebar .nav-link i {
+            width: 24px;
+            text-align: center;
+            margin-right: 8px;
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 20px;
+        }
+
+        .table-actions {
+            white-space: nowrap;
+            width: 120px;
+        }
+
+        .card-stat {
+            transition: all 0.3s;
+        }
+
+        .card-stat:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .camera-container {
+            position: relative;
+            margin-bottom: 20px;
+            border: 3px solid #ddd;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        #camera-viewfinder {
+            width: 100%;
+            background-color: #000;
+            display: block;
+            height: 365px;
+        }
+
+        .camera-controls {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-top: 1px solid #ddd;
+        }
+
+        .capture-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            font-size: 24px;
+        }
+
+        .plate-display {
+            font-family: 'Courier New', monospace;
+            font-size: 1.5rem;
+            letter-spacing: 2px;
+        }
+
+        .log-entry {
+            border-left: 3px solid #0d6efd;
+            padding-left: 10px;
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="d-flex">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="p-3 text-white">
+                <h4>Admin Panel</h4>
+            </div>
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link active" href="#" id="home-tab">
+                        <i class="fas fa-home"></i> Home
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#" id="vehicles-tab">
+                        <i class="fas fa-car"></i> Vehicles
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#" id="users-tab">
+                        <i class="fas fa-users"></i> Users
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Home (Camera) Content -->
+            <div id="home-content">
+                <div class="d-flex justify-content-between mb-3">
+                    <h3><i class="fas fa-camera me-2"></i>Vehicle Entry/Exit System</h3>
+                    <div class="btn-group">
+                        <button class="btn btn-outline-primary" id="entry-mode-btn">
+                            <i class="fas fa-sign-in-alt"></i> Entry Mode
+                        </button>
+                        <button class="btn btn-outline-danger" id="exit-mode-btn">
+                            <i class="fas fa-sign-out-alt"></i> Exit Mode
+                        </button>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="camera-container">
+                            <!-- Camera feed will be displayed here -->
+                            <img id="camera-viewfinder">
+                            <div class="camera-controls d-flex justify-content-center py-3">
+                                <button class="btn btn-success mx-2" id="start-btn">
+                                    <i class="fas fa-play"></i> Start
+                                </button>
+                                <button class="btn btn-danger mx-2" id="stop-btn">
+                                    <i class="fas fa-stop"></i> Stop
+                                </button>
+                                <button class="btn btn-primary mx-2" id="capture-btn">
+                                    <i class="fas fa-camera"></i> Capture
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <i class="fas fa-image me-2"></i>Captured Image
+                            </div>
+                            <div class="card-body text-center">
+                                <canvas id="captured-image" style="max-width: 100%; display: none;"></canvas>
+                                <p id="no-capture-message" class="text-muted">No image captured yet</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="card mb-4">
+                            <div class="card-header bg-primary text-white">
+                                <i class="fas fa-car me-2"></i>Detected Vehicle
+                            </div>
+                            <div class="card-body">
+                                <div class="text-center mb-3">
+                                    <h5>Number Plate</h5>
+                                    <div class="plate-display bg-dark text-white p-2 rounded mb-3" id="detected-plate">
+                                        ABC-1234
+                                    </div>
+                                    <div id="plate-confidence" class="mb-3">
+                                        <small class="text-muted">Confidence: 92%</small>
+                                    </div>
+                                </div>
+                                <hr>
+                                <div id="vehicle-info">
+                                    <h6>Vehicle Information</h6>
+                                    <p class="text-muted">No vehicle matched</p>
+                                </div>
+                            </div>
+                            <div class="card-footer">
+                                <button class="btn btn-danger w-100" id="reject-entry-btn">
+                                    <i class="fas fa-times-circle"></i> Reject Entry
+                                </button>
+                                <button class="btn btn-danger w-100" id="reject-exit-btn" style="display: none;">
+                                    <i class="fas fa-times-circle"></i> Reject Exit
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="fas fa-history me-2"></i>Recent Activity
+                            </div>
+                            <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+                                <div id="camera-activity-log">
+                                    <div class="log-entry">
+                                        <small class="text-muted">10:23 AM</small>
+                                        <p class="mb-1">Vehicle ABC-1234 entered</p>
+                                    </div>
+                                    <div class="log-entry">
+                                        <small class="text-muted">09:45 AM</small>
+                                        <p class="mb-1">Vehicle XYZ-5678 exited</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Vehicles Content -->
+            <div id="vehicles-content" style="display: none;">
+                <div class="d-flex justify-content-between mb-3">
+                    <h3><i class="fas fa-car me-2"></i>Vehicle Management</h3>
+                    <button class="btn btn-primary" id="add-vehicle-btn">
+                        <i class="fas fa-plus me-1"></i> Add Vehicle
+                    </button>
+                </div>
+                <div class="card">
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover" id="vehicles-table">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Color</th>
+                                        <th>Number Plate</th>
+                                        <th>Assigned To</th>
+                                        <th class="text-end">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="vehicles-table-body">
+                                    <!-- Vehicle data will be loaded here -->
+                                    <tr>
+                                        <td colspan="7" class="text-center text-muted py-4">Loading vehicles...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Users Content -->
+            <div id="users-content" style="display: none;">
+                <div class="d-flex justify-content-between mb-3">
+                    <h3><i class="fas fa-users me-2"></i>User Management</h3>
+                    <button class="btn btn-primary" id="add-user-btn">
+                        <i class="fas fa-plus me-1"></i> Add User
+                    </button>
+                </div>
+                <div class="card">
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover" id="users-table">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Name</th>
+                                        <th>Email</th>
+                                        <th>Role</th>
+                                        <th>Vehicle</th>
+                                        <th class="text-end">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="users-table-body">
+                                    <!-- User data will be loaded here -->
+                                    <tr>
+                                        <td colspan="6" class="text-center text-muted py-4">Loading users...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Vehicle Modal -->
+            <div class="modal fade" id="vehicleModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+
+                        <div class="modal-header">
+                            <h5 class="modal-title">Vehicle Modal</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+
+                        <div class="modal-body">
+                            <form>
+                                <div class="mb-3">
+                                    <label for="vehicleName" class="form-label">Name</label>
+                                    <input type="text" class="form-control" id="vehicleName" name="name">
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="vehicleColor" class="form-label">Color</label>
+                                    <input type="text" class="form-control" id="vehicleColor" name="color">
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="numberPlate" class="form-label">Number Plate</label>
+                                    <input type="text" class="form-control" id="numberPlate" name="numberPlate">
+                                </div>
+                            </form>
+                        </div>
+
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            <button type="submit" class="btn btn-primary" form="vehicleForm"
+                                id="save-vehicle-btn">Save</button>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            <!-- User Modal -->
+            <div class="modal fade" id="userModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+
+                        <div class="modal-header">
+                            <h5 class="modal-title">User Modal</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+
+                        <div class="modal-body">
+                            <form>
+                                <div class="mb-3">
+                                    <label for="name" class="form-label">Name</label>
+                                    <input type="text" class="form-control" id="name" name="name" required>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="email" class="form-label">Email</label>
+                                    <input type="email" class="form-control" id="email" name="email" required>
+                                </div>
+                            </form>
+                        </div>
+
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            <button type="submit" class="btn btn-primary" form="userForm"
+                                id="save-user-btn">Save</button>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            <!-- Confirmation Modal -->
+            <div class="modal fade" id="confirmModal" tabindex="-1" aria-hidden="true">
+                <!-- Modal content remains the same as previous example -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Custom JS -->
+    <script src="app.js"></script>
+    <script src="camera-content.js"></script>
+</body>
+
+</html>

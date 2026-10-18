@@ -229,24 +229,33 @@ public class VehicleService {
     }
 
     private void finalizeVehicleExitRecord(String numberPlate) {
-        // Find Vehicle
-        Vehicle vehicle = new Vehicle();
         Optional<Vehicle> vehicleOptional = vehicleRepository.findByNumberPlate(numberPlate);
-
-        if (vehicleOptional.isPresent()) {
-            vehicle = vehicleOptional.get();
-        } else {
-            // DO IF NOT FOUND
+        if (vehicleOptional.isEmpty()) {
+            System.out.println("Exit rejected: no entry record for plate " + numberPlate);
+            return;
         }
+        Vehicle vehicle = vehicleOptional.get();
 
-        // FIND LOG
-        Log log = new Log();
+        // Latest visit for this vehicle
         Optional<Log> logOptional = logRepository.findTopByVehicleIdOrderByCreatedAtDesc(vehicle.getId());
+        if (logOptional.isEmpty()) {
+            System.out.println("Exit rejected: no visit log for plate " + numberPlate);
+            return;
+        }
+        Log log = logOptional.get();
 
-        if (logOptional.isPresent()) {
-            log = logOptional.get();
-        } else {
-            // DO IF NOT FOUND
+        Optional<QRCode> qrCodeOptional = qrCodeRepository.findByLogId(log.getId());
+        if (qrCodeOptional.isEmpty()) {
+            System.out.println("Exit rejected: no QR code for visit " + log.getId());
+            return;
+        }
+        QRCode qrCode = qrCodeOptional.get();
+
+        // READ QR CODE and validate it belongs to this visit and has not been used
+        String qrCodeData = qrCodeService.readQRCode(qrCode.getImageUrl());
+        if (!log.getId().toString().equals(qrCodeData) || qrCode.isExpired()) {
+            System.out.println("Exit rejected: invalid or already used QR code for plate " + numberPlate);
+            return;
         }
 
         AccessPoint accessPoint = new AccessPoint();
@@ -256,23 +265,10 @@ public class VehicleService {
         accessPoint.setActionType("EXIT");
         acccessPointRepository.save(accessPoint);
 
-        QRCode qrCode = new QRCode();
-        Optional<QRCode> qrCodeOptional = qrCodeRepository.findByLogId(log.getId());
-        qrCode = qrCodeOptional.get();
-
-        // READ QR CODE
-        String qrCodeData = qrCodeService.readQRCode(qrCode.getImageUrl());
-
-        // validate QR Code
-        if (!log.getId().equals(UUID.fromString(qrCodeData)) || qrCode.isExpired() == true) {
-            // INVALID
-            System.out.println("Invalid!!");
-            return;
-        }
-
-        // Update QR code is active to false and save
+        // Mark QR code as used so it cannot be reused for another exit
         qrCode.setIsExpired(true);
-        qrCodeRepository.save(qrCode); // save
+        qrCodeRepository.save(qrCode);
+        System.out.println("Exit approved for plate " + numberPlate);
     }
 
     public DetectedVehicle getLastDetectedVehicle() {
